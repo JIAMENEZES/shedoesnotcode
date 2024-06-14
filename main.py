@@ -1,32 +1,35 @@
-import jwt
-import sqlalchemy as sa
-from jwt import encode as jwt_encode
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from bson import ObjectId
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-app = FastAPI()
+DATABASE_URL = "postgres://postgres:postgres@localhost:5442/pdb"
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# DB Connection here
-# engine = sa.create_engine("postgres://postgres:postgres@localhost:5442/pdb")
-# connection = engine.connect()
+Base = declarative_base()
 
-SECRET_KEY = "asldfjaoiw4tuasjlkau8tu4wojfau8ufalset78woejfo"
-security = HTTPBearer()
 
-@app.get("/")
-def homepage():
-    return {"message": "Welcome to the internet"}
+class Stop(Base):
+    __tablename__ = "stops"
 
-@app.post("/login")
-def login(user: User):
-    pass
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    latitude = Column(String)
+    longitude = Column(String)
+    is_accessible = Column(Boolean, default=False)
+
+    def __repr__(self):
+        return f"Stop(id={self.id}, name={self.name}, latitude={self.latitude}, longitude={self.longitude})"
+
+
+def create_all_tables():
+    Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
